@@ -1,0 +1,220 @@
+#include <iostream>
+#include <vector>
+#include <string>
+#include <iomanip>
+using namespace std;
+
+// Forward declaration
+class Transaction;
+
+// -------------------- Customer Class --------------------
+class Customer {
+public:
+    int customerID;
+    string name;
+    string email;
+
+    Customer(int id, string n, string e) : customerID(id), name(n), email(e) {}
+};
+
+// -------------------- Transaction Class --------------------
+class Transaction {
+public:
+    string type;      // Deposit, Withdraw, Transfer
+    double amount;
+    string details;   // Extra info
+    Transaction(string t, double a, string d) : type(t), amount(a), details(d) {}
+};
+
+// -------------------- Account Class --------------------
+class Account {
+private:
+    int accountNumber;
+    double balance;
+    Customer* owner;
+    vector<Transaction> history;
+
+public:
+    Account(int accNo, Customer* cust) {
+        accountNumber = accNo;
+        owner = cust;
+        balance = 0.0;
+    }
+
+    int getAccountNumber() { return accountNumber; }
+    double getBalance() { return balance; }
+    string getOwnerName() { return owner->name; }
+
+    void deposit(double amount) {
+        balance += amount;
+        history.push_back(Transaction("Deposit", amount, "Cash deposit"));
+        cout << "Deposit successful. New balance: " << balance << endl;
+    }
+
+    void withdraw(double amount) {
+        if (amount > balance) {
+            cout << "Insufficient balance!\n";
+            return;
+        }
+        balance -= amount;
+        history.push_back(Transaction("Withdraw", amount, "Cash withdrawal"));
+        cout << "Withdrawal successful. New balance: " << balance << endl;
+    }
+
+    void transfer(Account &toAccount, double amount) {
+        if (amount > balance) {
+            cout << "Insufficient balance for transfer!\n";
+            return;
+        }
+        balance -= amount;
+        toAccount.balance += amount;
+        history.push_back(Transaction("Transfer", amount, "To Acc " + to_string(toAccount.getAccountNumber())));
+        toAccount.history.push_back(Transaction("Transfer", amount, "From Acc " + to_string(accountNumber)));
+        cout << "Transfer successful. Your new balance: " << balance << endl;
+    }
+
+    void showAccountInfo() {
+        cout << "\n--- Account Info ---\n";
+        cout << "Account Number: " << accountNumber << endl;
+        cout << "Customer Name : " << owner->name << endl;
+        cout << "Email         : " << owner->email << endl;
+        cout << "Balance       : " << balance << endl;
+    }
+
+    void showTransactions() {
+        cout << "\n--- Transaction History ---\n";
+        if (history.empty()) {
+            cout << "No transactions yet.\n";
+            return;
+        }
+        for (auto &t : history) {
+            cout << setw(10) << t.type << " | " << setw(8) << t.amount << " | " << t.details << endl;
+        }
+    }
+};
+
+// -------------------- Main Function --------------------
+int main() {
+    vector<Customer*> customers;
+    vector<Account*> accounts;
+    int customerCounter = 1, accountCounter = 1001;
+
+    int choice;
+    do {
+        cout << "\n=== Banking System Menu ===\n";
+        cout << "1. Create Customer\n";
+        cout << "2. Open Account\n";
+        cout << "3. Deposit\n";
+        cout << "4. Withdraw\n";
+        cout << "5. Transfer Funds\n";
+        cout << "6. Show Account Info\n";
+        cout << "7. Show Transactions\n";
+        cout << "8. Exit\n";
+        cout << "Enter choice: ";
+        cin >> choice;
+
+        if (choice == 1) {
+            string name, email;
+            cout << "Enter name: ";
+            cin >> name;
+            cout << "Enter email: ";
+            cin >> email;
+            Customer* cust = new Customer(customerCounter++, name, email);
+            customers.push_back(cust);
+            cout << "Customer created with ID: " << cust->customerID << endl;
+
+        } else if (choice == 2) {
+            int custID;
+            cout << "Enter customer ID: ";
+            cin >> custID;
+            Customer* cust = nullptr;
+            for (auto c : customers) {
+                if (c->customerID == custID) {
+                    cust = c;
+                    break;
+                }
+            }
+            if (cust) {
+                Account* acc = new Account(accountCounter++, cust);
+                accounts.push_back(acc);
+                cout << "Account created with Acc No: " << acc->getAccountNumber() << endl;
+            } else {
+                cout << "Customer not found!\n";
+            }
+
+        } else if (choice == 3) {
+            int accNo; double amt;
+            cout << "Enter account number: ";
+            cin >> accNo;
+            cout << "Enter amount: ";
+            cin >> amt;
+            for (auto acc : accounts) {
+                if (acc->getAccountNumber() == accNo) {
+                    acc->deposit(amt);
+                }
+            }
+
+        } else if (choice == 4) {
+            int accNo; double amt;
+            cout << "Enter account number: ";
+            cin >> accNo;
+            cout << "Enter amount: ";
+            cin >> amt;
+            for (auto acc : accounts) {
+                if (acc->getAccountNumber() == accNo) {
+                    acc->withdraw(amt);
+                }
+            }
+
+        } else if (choice == 5) {
+            int fromAcc, toAcc; double amt;
+            cout << "Enter your account number: ";
+            cin >> fromAcc;
+            cout << "Enter recipient account number: ";
+            cin >> toAcc;
+            cout << "Enter amount: ";
+            cin >> amt;
+
+            Account* sender = nullptr;
+            Account* receiver = nullptr;
+            for (auto acc : accounts) {
+                if (acc->getAccountNumber() == fromAcc) sender = acc;
+                if (acc->getAccountNumber() == toAcc) receiver = acc;
+            }
+
+            if (sender && receiver) {
+                sender->transfer(*receiver, amt);
+            } else {
+                cout << "Invalid account numbers.\n";
+            }
+
+        } else if (choice == 6) {
+            int accNo;
+            cout << "Enter account number: ";
+            cin >> accNo;
+            for (auto acc : accounts) {
+                if (acc->getAccountNumber() == accNo) {
+                    acc->showAccountInfo();
+                }
+            }
+
+        } else if (choice == 7) {
+            int accNo;
+            cout << "Enter account number: ";
+            cin >> accNo;
+            for (auto acc : accounts) {
+                if (acc->getAccountNumber() == accNo) {
+                    acc->showTransactions();
+                }
+            }
+
+        } else if (choice == 8) {
+            cout << "Exiting system...\n";
+        } else {
+            cout << "Invalid choice.\n";
+        }
+
+    } while (choice != 8);
+
+    return 0;
+}
